@@ -1,33 +1,37 @@
-import hashlib
+def custom_hash(data: str, block_size: int = 8, init_vector: int = 0x12345678) -> str:
+    """
+    Простая хеш-функция на основе XOR и блочного шифрования.
 
-def hash_file(file_path):
-    """Создает SHA-256 хэш файла."""
-    hasher = hashlib.sha256()
-    with open(file_path, "rb") as f:
-        while chunk := f.read(8192):
-            hasher.update(chunk)
-    return hasher.hexdigest()
+    :param data: Исходная строка для хеширования.
+    :param block_size: Размер блока (в байтах).
+    :param init_vector: Начальный вектор (IV) для хеширования.
+    :return: Хеш в виде шестнадцатеричной строки.
+    """
+    # Преобразуем данные в байты
+    data_bytes = data.encode('utf-8')
 
-def verify_files(original_file, decrypted_file):
-    """Сравнивает хэши исходного и расшифрованного файлов."""
-    original_hash = hash_file(original_file)
-    decrypted_hash = hash_file(decrypted_file)
+    # Инициализируем хеш начальным вектором
+    hash_value = init_vector
 
-    print(f"Хэш оригинального файла:   {original_hash}")
-    print(f"Хэш расшифрованного файла: {decrypted_hash}")
+    # Разделяем данные на блоки
+    for i in range(0, len(data_bytes), block_size):
+        block = data_bytes[i:i + block_size]
 
-    if original_hash == decrypted_hash:
-        print("Сообщение успешно расшифровано: файлы совпадают.")
-        return True
-    else:
-        print("Ошибка: файлы не совпадают.")
-        return False
+        # Дополняем блок до размера block_size
+        if len(block) < block_size:
+            block = block.ljust(block_size, b'\x00')
+
+        # Преобразуем блок в целое число
+        block_int = int.from_bytes(block, byteorder='big')
+
+        # Хеширование: XOR и циклический сдвиг
+        hash_value ^= block_int
+        hash_value = ((hash_value << 3) | (hash_value >> (32 - 3))) & 0xFFFFFFFF
+
+    # Возвращаем хеш в шестнадцатеричной строке
+    return f"{hash_value:08x}"
 
 
-if __name__ == "__main__":
-    # Пути к файлам
-    input_file = "input.txt"
-    decrypted_file = "decrypted.txt"
-
-    # Проверка
-    verify_files(input_file, decrypted_file)
+input_data = input("Введите строку для хеширования: ")
+hash_result = custom_hash(input_data)
+print(f"Хеш строки: {hash_result}")
